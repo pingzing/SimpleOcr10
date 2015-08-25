@@ -20,6 +20,10 @@ using System.Diagnostics;
 using Windows.Storage.FileProperties;
 using Windows.Graphics.Imaging;
 using System.Text;
+using System.ComponentModel;
+using System.Collections.ObjectModel;
+using SimpleOcr10.Models;
+using Windows.UI.Xaml.Media.Imaging;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -28,16 +32,31 @@ namespace SimpleOcr10
     /// <summary>
     /// An empty page that can be used on its own or navigated to within a Frame.
     /// </summary>
-    public sealed partial class MainPage : Page
+    public sealed partial class MainPage : Page, INotifyPropertyChanged
     {
         public MainPage()
         {
             this.InitializeComponent();
+            this.DataContext = this;
+        }
+
+        private ObservableCollection<OcrResultDisplay> _resultsList = new ObservableCollection<OcrResultDisplay>();
+        public ObservableCollection<OcrResultDisplay> ResultsList
+        {
+            get { return _resultsList; }
+            set
+            {
+                if(value != _resultsList)
+                {
+                    _resultsList = value;
+                    OnPropertyChanged(ResultsList);
+                }
+            }
         }
 
         private async void BrowseButton_Click(object sender, RoutedEventArgs e)
         {
-            ResultsBox.Text = "";
+            ResultsList.Clear();
             StatusBlock.Text = "Running...";
             FileOpenPicker openPicker = new FileOpenPicker();
             openPicker.CommitButtonText = "Open";
@@ -50,7 +69,7 @@ namespace SimpleOcr10
             openPicker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
             IReadOnlyList<StorageFile> files = await openPicker.PickMultipleFilesAsync();
 
-            List<Task<string>> taskList = new List<Task<string>>();
+            List<Task<OcrResultDisplay>> taskList = new List<Task<OcrResultDisplay>>();
             foreach (StorageFile file in files)
             {
                 try
@@ -63,28 +82,30 @@ namespace SimpleOcr10
                 }
             }
 
-            await Task.WhenAll<string>(taskList);
+            await Task.WhenAll(taskList);
 
             foreach (var task in taskList)
             {
-                ResultsBox.Text += $"Results:\n{task.Result}---------------------------------------------------\n";
+                ResultsList.Add(task.Result);
             }
             StatusBlock.Text = "Ready";
 
         }
 
-        private async Task<string> ProcessImage(StorageFile file)
+        private async Task<OcrResultDisplay> ProcessImage(StorageFile file)
         {            
-            SoftwareBitmap bitmap;          
+            SoftwareBitmap bitmap;
+            ImageSource source;
             using (var imgStream = await file.OpenAsync(FileAccessMode.Read))
             {
-                var decoder = await BitmapDecoder.CreateAsync(imgStream);
+                var decoder = await BitmapDecoder.CreateAsync(imgStream);                
                 bitmap = await decoder.GetSoftwareBitmapAsync();                                
             }
 
             if(bitmap == null)
             {
-                return "No text found.\n";
+                source = new BitmapImage();
+                return new OcrResultDisplay { OcrString = "No text found.\n", OcrImage = source};
             }
 
             OcrEngine engine = OcrEngine.TryCreateFromLanguage(new Windows.Globalization.Language("en"));
@@ -92,7 +113,10 @@ namespace SimpleOcr10
             StringBuilder sb = new StringBuilder();
             if (result.Lines == null)
             {
-                return "No text found.";
+                source = new SoftwareBitmapSource();
+                bitmap = SoftwareBitmap.Convert(bitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
+                await ((SoftwareBitmapSource)source).SetBitmapAsync(bitmap);
+                return new OcrResultDisplay { OcrString = "No text found.\n", OcrImage = source };
             }
             foreach (var line in result.Lines)
             {
@@ -102,7 +126,56 @@ namespace SimpleOcr10
                 }
                 sb.AppendLine();
             }
-            return sb.ToString();
+
+            source = new SoftwareBitmapSource();
+            bitmap = SoftwareBitmap.Convert(bitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
+            await ((SoftwareBitmapSource)source).SetBitmapAsync(bitmap);
+            return new OcrResultDisplay { OcrString = sb.ToString(), OcrImage = source };
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void OnPropertyChanged(object property)
+        {
+            if(PropertyChanged != null)
+            {
+                PropertyChanged(this, new PropertyChangedEventArgs(nameof(property)));
+            }
+        }
+
+        private void FlyoutRemove_Click(object sender, RoutedEventArgs e)
+        {
+            if(OcrResultsList.SelectedItems?.Count == ResultsList.Count)
+            {
+                ResultsList.Clear();
+            }
+            if (OcrResultsList.SelectedItems?.Count > 1)
+            {
+                List<int> indicesToRemove = OcrResultsList.SelectedItems
+                    .Select(x => ResultsList.IndexOf(x as OcrResultDisplay))
+                    .OrderByDescending(x => x)
+                    .ToList();
+
+                foreach(int i in indicesToRemove)
+                {
+                    ResultsList.RemoveAt(i);
+                }
+            }
+            else
+            {
+                MenuFlyoutItem item = (MenuFlyoutItem)e.OriginalSource;
+                OcrResultDisplay ocrItem = (OcrResultDisplay)item.DataContext;
+                ResultsList.Remove(ocrItem);
+            }
+        }
+
+        private void Grid_RightTapped(object sender, RightTappedRoutedEventArgs e)
+        {
+            Grid grid = sender as Grid;
+            if (grid != null)
+            {
+                FlyoutBase.ShowAttachedFlyout(grid);
+            }
         }
     }
 }

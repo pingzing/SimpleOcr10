@@ -7,8 +7,8 @@
     <ProjectGuid>{815AB4AF-310A-4E09-BDA0-47C3DE1F5AFC}</ProjectGuid>
     <OutputType>AppContainerExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Windows10</RootNamespace>
-    <AssemblyName>Windows10</AssemblyName>
+    <RootNamespace>SimpleOcr10</RootNamespace>
+    <AssemblyName>SimpleOcr10</AssemblyName>
     <DefaultLanguage>en-US</DefaultLanguage>
     <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
     <TargetPlatformVersion>10.0.10240.0</TargetPlatformVersion>
@@ -102,6 +102,7 @@
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Models\OcrResultDisplay.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
