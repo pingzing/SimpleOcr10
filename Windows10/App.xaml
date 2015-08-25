@@ -1,0 +1,8 @@
+﻿<Application
+    x:Class="SimpleOcr10.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:SimpleOcr10"
+    RequestedTheme="Light">
+
+</Application>
