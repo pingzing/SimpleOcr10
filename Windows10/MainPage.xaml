@@ -6,40 +6,99 @@
     xmlns:models="using:SimpleOcr10.Models"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d">
+    mc:Ignorable="d" SizeChanged="Page_SizeChanged">
+
     <Page.Resources>
         <MenuFlyout x:Key="ListViewFlyout">
             <MenuFlyoutItem Text="Remove" Click="FlyoutRemove_Click"/>
         </MenuFlyout>
+
+        <DataTemplate x:Key="NarrowOcrItemTemplate" x:DataType="models:OcrResultDisplay">
+            <RelativePanel RightTapped="OcrListItem_RightTapped" 
+                           FlyoutBase.AttachedFlyout="{StaticResource ListViewFlyout}" 
+                           Background="Transparent">
+                <Image x:Name="OcrImage" 
+                       Source="{x:Bind OcrImage}" 
+                       HorizontalAlignment="Right" 
+                       Margin="10,0,10,0" 
+                       x:Phase="2"/>
+                <TextBox x:Name="OcrTextBox" 
+                         AcceptsReturn="True" 
+                         IsReadOnly="True" 
+                         Text="{x:Bind OcrString}" 
+                         x:Phase="1"
+                         RelativePanel.Below="OcrImage"
+                         RelativePanel.AlignHorizontalCenterWith="OcrImage"
+                                />
+            </RelativePanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="WideOcrItemTemplate" x:DataType="models:OcrResultDisplay">
+            <Grid RightTapped="OcrListItem_RightTapped" 
+                           FlyoutBase.AttachedFlyout="{StaticResource ListViewFlyout}" 
+                           Background="Transparent">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="OcrTextBox" 
+                         Grid.Column="0"
+                         AcceptsReturn="True" 
+                         IsReadOnly="True" 
+                         Text="{x:Bind OcrString}" 
+                         x:Phase="1"/>
+                <Image x:Name="OcrImage" 
+                       Grid.Column="1"
+                       Source="{x:Bind OcrImage}" 
+                       HorizontalAlignment="Right" 
+                       Stretch="Uniform"
+                       Margin="10,0,10,0" 
+                       x:Phase="2"/>
+            </Grid>
+        </DataTemplate>
     </Page.Resources>
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="Common">
+                <VisualState x:Name="Wide">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="720"/>
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="OcrResultsList.ItemTemplate" Value="{StaticResource WideOcrItemTemplate}"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="Narrow">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger/>
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="OcrResultsList.ItemTemplate" Value="{StaticResource NarrowOcrItemTemplate}"/>
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+
         <Grid.RowDefinitions>
             <RowDefinition/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <ListView x:Name="OcrResultsList" ItemsSource="{x:Bind Path=ResultsList}" SelectionMode="Extended">
-            <ListView.ItemTemplate>
-                <DataTemplate x:DataType="models:OcrResultDisplay">
-                    <Grid RightTapped="Grid_RightTapped" FlyoutBase.AttachedFlyout="{StaticResource ListViewFlyout}" Background="Transparent">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition/>
-                        </Grid.ColumnDefinitions>
-                        <TextBox Grid.Column="0" AcceptsReturn="True" IsReadOnly="True" Text="{x:Bind OcrString}" x:Phase="1"/>
-                        <Image Grid.Column="1" Source="{x:Bind OcrImage}" HorizontalAlignment="Right" Margin="10,0,10,0"/>
-                    </Grid>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
+        <ListView x:Name="OcrResultsList" ItemsSource="{x:Bind Path=ResultsList}" SelectionMode="Extended" ItemTemplate="{StaticResource NarrowOcrItemTemplate}"/>
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
             <TextBlock x:Name="StatusBlock" Text="Ready" Style="{StaticResource BaseTextBlockStyle}" Margin="10,0,10,10"/>
-            <Button Grid.Column="1" Content="Browse for files" Click="BrowseButton_Click" Margin="0,0,10,10" HorizontalAlignment="Right"/>
+            <TextBlock x:Name="DimensionsTextBlock" Foreground="Red" Grid.Column="2">
+                <Run Text="{x:Bind WidthString, Mode=OneWay}"/>
+                <Run Text="{x:Bind HeightString, Mode=OneWay}"/>
+            </TextBlock>
+            <Button Grid.Column="2" Content="Browse for files" Click="BrowseButton_Click" Margin="0,0,10,10" HorizontalAlignment="Right"/>
         </Grid>
     </Grid>
 </Page>

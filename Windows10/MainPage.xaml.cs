@@ -24,6 +24,7 @@ using System.ComponentModel;
 using System.Collections.ObjectModel;
 using SimpleOcr10.Models;
 using Windows.UI.Xaml.Media.Imaging;
+using System.Runtime.CompilerServices;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -54,6 +55,36 @@ namespace SimpleOcr10
             }
         }
 
+        private string _widthString = "W: 0";
+        public string WidthString
+        {
+            get { return _widthString; }
+            set
+            {
+                if(_widthString == value)
+                {
+                    return;
+                }
+                _widthString = value;
+                OnPropertyChanged(WidthString);
+            }
+        }
+
+        private string _heightString = "H: 0";
+        public string HeightString
+        {
+            get { return _heightString; }
+            set
+            {
+                if (_heightString == value)
+                {
+                    return;
+                }
+                _heightString = value;
+                OnPropertyChanged(HeightString);
+            }
+        }
+
         private async void BrowseButton_Click(object sender, RoutedEventArgs e)
         {
             ResultsList.Clear();
@@ -68,26 +99,20 @@ namespace SimpleOcr10
             openPicker.ViewMode = PickerViewMode.Thumbnail;
             openPicker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
             IReadOnlyList<StorageFile> files = await openPicker.PickMultipleFilesAsync();
-
-            List<Task<OcrResultDisplay>> taskList = new List<Task<OcrResultDisplay>>();
+            
             foreach (StorageFile file in files)
             {
                 try
                 {
-                    taskList.Add(ProcessImage(file));
+                    var result = await ProcessImage(file);
+                    ResultsList.Add(result);
                 }
                 catch (Exception ex)
                 {
                     Debug.WriteLine(ex);
                 }
             }
-
-            await Task.WhenAll(taskList);
-
-            foreach (var task in taskList)
-            {
-                ResultsList.Add(task.Result);
-            }
+            
             StatusBlock.Text = "Ready";
 
         }
@@ -135,11 +160,11 @@ namespace SimpleOcr10
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private void OnPropertyChanged(object property)
+        private void OnPropertyChanged(object property, [CallerMemberName]string propertyName = "")
         {
             if(PropertyChanged != null)
             {
-                PropertyChanged(this, new PropertyChangedEventArgs(nameof(property)));
+                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
             }
         }
 
@@ -169,13 +194,19 @@ namespace SimpleOcr10
             }
         }
 
-        private void Grid_RightTapped(object sender, RightTappedRoutedEventArgs e)
+        private void OcrListItem_RightTapped(object sender, RightTappedRoutedEventArgs e)
         {
-            Grid grid = sender as Grid;
-            if (grid != null)
+            FrameworkElement element = sender as FrameworkElement;
+            if (element != null)
             {
-                FlyoutBase.ShowAttachedFlyout(grid);
+                FlyoutBase.ShowAttachedFlyout(element);
             }
+        }
+
+        private void Page_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            WidthString = $"W: {e.NewSize.Width}";
+            HeightString = $"W: {e.NewSize.Height}";            
         }
     }
 }
