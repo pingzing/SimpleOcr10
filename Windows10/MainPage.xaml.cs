@@ -162,10 +162,7 @@ namespace SimpleOcr10
 
         private void OnPropertyChanged(object property, [CallerMemberName]string propertyName = "")
         {
-            if(PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         private void FlyoutRemove_Click(object sender, RoutedEventArgs e)
@@ -197,10 +194,12 @@ namespace SimpleOcr10
         private void OcrListItem_RightTapped(object sender, RightTappedRoutedEventArgs e)
         {
             FrameworkElement element = sender as FrameworkElement;
-            if (element != null)
+            if (element == null)
             {
-                FlyoutBase.ShowAttachedFlyout(element);
+                return;
             }
+            var flyout = FlyoutBase.GetAttachedFlyout(element) as MenuFlyout;
+            flyout?.ShowAt(this, e.GetPosition(null));
         }
 
         private void Page_SizeChanged(object sender, SizeChangedEventArgs e)
