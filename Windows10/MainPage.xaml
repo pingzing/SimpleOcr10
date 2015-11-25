@@ -6,7 +6,8 @@
     xmlns:models="using:SimpleOcr10.Models"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d" SizeChanged="Page_SizeChanged">
+    mc:Ignorable="d"     
+    KeyDown="Page_KeyDown">
 
     <Page.Resources>
         <MenuFlyout x:Key="ListViewFlyout">
@@ -17,19 +18,22 @@
             <RelativePanel RightTapped="OcrListItem_RightTapped" 
                            FlyoutBase.AttachedFlyout="{StaticResource ListViewFlyout}" 
                            Background="Transparent">
-                <Image x:Name="OcrImage" 
-                       Source="{x:Bind OcrImage}" 
-                       HorizontalAlignment="Right" 
-                       Margin="10,0,10,0" 
-                       x:Phase="2"/>
+                <Viewbox x:Name="OcrImageBox" StretchDirection="DownOnly" RelativePanel.AlignHorizontalCenterWithPanel="True">
+                    <Image Source="{x:Bind OcrImage}" 
+                           HorizontalAlignment="Center" 
+                           Margin="10,0,10,0"
+                           x:Phase="2"
+                           Stretch="None"/>
+                </Viewbox>
+                <!--The designer complaining about the RelativePanel.Below seems to be a bug. 
+                It should work with {Binding ElementName}, but for some reason, it...doesn't.-->
                 <TextBox x:Name="OcrTextBox" 
                          AcceptsReturn="True" 
                          IsReadOnly="True" 
                          Text="{x:Bind OcrString}" 
                          x:Phase="1"
-                         RelativePanel.Below="OcrImage"
-                         RelativePanel.AlignHorizontalCenterWith="OcrImage"
-                                />
+                         RelativePanel.Below="OcrImageBox"
+                         RelativePanel.AlignHorizontalCenterWithPanel="True"/>
             </RelativePanel>
         </DataTemplate>
 
@@ -47,13 +51,11 @@
                          IsReadOnly="True" 
                          Text="{x:Bind OcrString}" 
                          x:Phase="1"/>
-                <Image x:Name="OcrImage" 
-                       Grid.Column="1"
-                       Source="{x:Bind OcrImage}" 
-                       HorizontalAlignment="Right" 
-                       Stretch="Uniform"
-                       Margin="10,0,10,0" 
-                       x:Phase="2"/>
+                <Viewbox x:Name="OcrImage" StretchDirection="DownOnly" Grid.Column="1" HorizontalAlignment="Left" Margin="10,0,10,0">
+                    <Image Source="{x:Bind OcrImage}"                                                      
+                           x:Phase="2"
+                           Stretch="None"/>
+                </Viewbox>
             </Grid>
         </DataTemplate>
     </Page.Resources>
@@ -86,19 +88,40 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <ListView x:Name="OcrResultsList" ItemsSource="{x:Bind Path=ResultsList}" SelectionMode="Extended" ItemTemplate="{StaticResource NarrowOcrItemTemplate}"/>
+        <ListView x:Name="OcrResultsList" 
+                  Grid.Row="0"
+                  ItemsSource="{x:Bind Path=ViewModel.ResultsList}" 
+                  SelectionMode="Extended"
+                  IsMultiSelectCheckBoxEnabled="{x:Bind ViewModel.IsMultiSelectCheckboxEnabled, Mode=TwoWay}"
+                  ItemTemplate="{StaticResource NarrowOcrItemTemplate}"
+                  SelectionChanged="OcrResultsList_OnSelectionChanged">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                </Style>
+            </ListView.ItemContainerStyle>
+                
+            </ListView>
+
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
-            <TextBlock x:Name="StatusBlock" Text="Ready" Style="{StaticResource BaseTextBlockStyle}" Margin="10,0,10,10"/>
-            <TextBlock x:Name="DimensionsTextBlock" Foreground="Red" Grid.Column="2">
-                <Run Text="{x:Bind WidthString, Mode=OneWay}"/>
-                <Run Text="{x:Bind HeightString, Mode=OneWay}"/>
-            </TextBlock>
-            <Button Grid.Column="2" Content="Browse for files" Click="BrowseButton_Click" Margin="0,0,10,10" HorizontalAlignment="Right"/>
         </Grid>
     </Grid>
+
+    <Page.BottomAppBar>
+        <CommandBar>
+            <CommandBar.Content>
+                <TextBlock Text="{x:Bind ViewModel.StatusText, Mode=OneWay}" Style="{StaticResource BaseTextBlockStyle}" Margin="12, 14"/>
+            </CommandBar.Content>
+            <AppBarButton Label="Delete Selected" Command="{x:Bind ViewModel.RemoveCommand}" CommandParameter="{x:Bind OcrResultsList.SelectedItems}" Icon="Delete" 
+                          IsEnabled="{x:Bind SelectedListItems, Mode=OneWay, Converter={StaticResource EmptyToBooleanConverter}}"/>
+            <AppBarButton Label="Browse" Command="{x:Bind ViewModel.BrowseCommand}" Icon="Add"/>
+            <AppBarToggleButton Label="Select" Command="{x:Bind ViewModel.ToggleSelectionCommand}" 
+                                IsChecked="{x:Bind ViewModel.IsMultiSelectCheckboxEnabled, Mode=OneWay, Converter={StaticResource EmptyToBooleanConverter}}" Icon="List"/>
+        </CommandBar>
+    </Page.BottomAppBar>
 </Page>
